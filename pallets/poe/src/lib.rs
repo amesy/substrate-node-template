@@ -109,13 +109,19 @@ pub mod pallet {
 
 		#[pallet::weight(0)]
 		/// 转移存证
-		pub fn transfer_claim(origin: OriginFor<T>, claim: Vec<u8>, dest: T::AccountId) -> DispatchResultWithPostInfo {
+		pub fn transfer_claim(
+			origin: OriginFor<T>,
+			claim: Vec<u8>,
+			dest: T::AccountId,
+		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			let bounded_claim = BoundedVec::<u8, T::MaxClaimLength>::try_from(claim.clone()).map_err(|_| Error::<T>::ClaimTooLong)?;
+			let bounded_claim = BoundedVec::<u8, T::MaxClaimLength>::try_from(claim.clone())
+				.map_err(|_| Error::<T>::ClaimTooLong)?;
 
 			// 只有已存储到链上的存证才能被转移
-			let (owner, _block_number) = Proofs::<T>::get(&bounded_claim).ok_or(Error::<T>::ClaimNotExist)?;
+			let (owner, _block_number) =
+				Proofs::<T>::get(&bounded_claim).ok_or(Error::<T>::ClaimNotExist)?;
 
 			// 确认发送方sender与存证owner一致
 			ensure!(owner == sender, Error::<T>::NotClaimOwner);

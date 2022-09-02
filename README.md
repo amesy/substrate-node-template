@@ -24,6 +24,12 @@ cargo build --release
 cargo test -p  PALLETS-PACKAGE-NAME
 ```
 
+### Format
+
+```bash
+cargo +nightly fmt
+```
+
 ## Substrate 区块链应用开发进阶
 
 ### 第一次作业
