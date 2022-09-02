@@ -28,4 +28,4 @@ cargo test -p  PALLETS-PACKAGE-NAME
 
 ### 第一次作业
 
-[代码执行截图](https://p.qlogo.cn/qqmail_head/C6nnRGnPbvwlVslNHxDtemvOjTjEDAZ1kU7KNglZeRibZgJNQnGzfofwQmCIllxjZhUk6ibxA2ianA/0)
+![代码执行截图](https://p.qlogo.cn/qqmail_head/C6nnRGnPbvwlVslNHxDtemvOjTjEDAZ1kU7KNglZeRibZgJNQnGzfofwQmCIllxjZhUk6ibxA2ianA/0)
