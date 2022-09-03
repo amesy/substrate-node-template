@@ -19,7 +19,7 @@ fn create_claim_works() {
 	})
 }
 
-/// 创建存证失败
+/// 创建存证失败 - 存证已存在
 #[test]
 fn create_claim_failed_when_claim_already_exist() {
 	new_test_ext().execute_with(|| {
@@ -30,6 +30,19 @@ fn create_claim_failed_when_claim_already_exist() {
 		assert_noop!(
 			PoeModule::create_claim(Origin::signed(1), claim.clone()),
 			Error::<Test>::ProofAlreadyExist
+		);
+	})
+}
+
+/// 创建存证失败 - 存证过长
+#[test]
+fn create_claim_failed_when_claim_too_long() {
+	new_test_ext().execute_with(|| {
+		let claim = vec![1; 513];
+
+		assert_noop!(
+			PoeModule::create_claim(Origin::signed(1), claim.clone()),
+			Error::<Test>::ClaimTooLong
 		);
 	})
 }
