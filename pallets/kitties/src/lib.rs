@@ -4,8 +4,10 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{pallet_prelude::*, traits::Randomness};
-	use frame_support::traits::{Currency, ReservableCurrency};
+	use frame_support::{
+		pallet_prelude::*,
+		traits::{Currency, Randomness, ReservableCurrency},
+	};
 	use frame_system::pallet_prelude::*;
 	use sp_io::hashing::blake2_128;
 	use sp_runtime::traits::{AtLeast32BitUnsigned, Bounded, One};
@@ -24,7 +26,7 @@ pub mod pallet {
 	pub struct Kitty(pub [u8; 16]);
 
 	type BalanceOf<T> =
-	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -35,10 +37,16 @@ pub mod pallet {
 		type Randomness: Randomness<Self::Hash, Self::BlockNumber>;
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		// 定义KittyIndex类型: 在runtime中实现
-		type KittyIndex: Parameter + Member + AtLeast32BitUnsigned  + Default + Copy + MaxEncodedLen + Bounded;
+		type KittyIndex: Parameter
+			+ Member
+			+ AtLeast32BitUnsigned
+			+ Default
+			+ Copy
+			+ MaxEncodedLen
+			+ Bounded;
 		type MaxKittyIndexLength: Get<u32>;
 		// 创建Kitty需要质押token保留的数量
-		type KittyReserve:Get<BalanceOf<Self>>;
+		type KittyReserve: Get<BalanceOf<Self>>;
 		// 用于质押等于资产相关的操作
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 	}
@@ -47,7 +55,8 @@ pub mod pallet {
 	#[pallet::getter(fn next_kitty_id)]
 	// 存储KittyId
 	// ValueQuery也可以定义成OptionQuery的数据类型，见template/src/lib.rs_89行
-	pub type NextKittyId<T: Config> = StorageValue<_, T::KittyIndex, ValueQuery, GetDefaultValue<T>>;
+	pub type NextKittyId<T: Config> =
+		StorageValue<_, T::KittyIndex, ValueQuery, GetDefaultValue<T>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn kitties)]
@@ -62,8 +71,13 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn all_kitties)]
 	// 存储一个账号下所有的kitty
-	pub type AllKitties<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BoundedVec<Kitty, T::MaxKittyIndexLength>, ValueQuery>;
-
+	pub type AllKitties<T: Config> = StorageMap<
+		_,
+		Blake2_128Concat,
+		T::AccountId,
+		BoundedVec<Kitty, T::MaxKittyIndexLength>,
+		ValueQuery,
+	>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -95,7 +109,8 @@ pub mod pallet {
 			let kitty_id = Self::get_next_id().map_err(|_| Error::<T>::InvalidKittyId)?;
 
 			// 创建新的kitty需要质押token
-			T::Currency::reserve(&who, T::KittyReserve::get()).map_err(|_| Error::<T>::TokenNotEnough)?;
+			T::Currency::reserve(&who, T::KittyReserve::get())
+				.map_err(|_| Error::<T>::TokenNotEnough)?;
 
 			let dna = Self::random_value(&who);
 			let new_kitty = Kitty(dna);
@@ -105,9 +120,8 @@ pub mod pallet {
 			NextKittyId::<T>::set(kitty_id + One::one());
 
 			// 将kitty信息进行存储
-			AllKitties::<T>::try_mutate(&who, |kitty_vec| {
-				kitty_vec.try_push(new_kitty.clone())
-			}).map_err(|_| Error::<T>::ExceedMaxKittyOwned)?;
+			AllKitties::<T>::try_mutate(&who, |kitty_vec| kitty_vec.try_push(new_kitty.clone()))
+				.map_err(|_| Error::<T>::ExceedMaxKittyOwned)?;
 
 			// Emit an event.
 			Self::deposit_event(Event::KittyCreated(who, kitty_id, new_kitty));
@@ -124,7 +138,8 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			// 繁殖kitty需要质押token
-			T::Currency::reserve(&who, T::KittyReserve::get()).map_err(|_| Error::<T>::TokenNotEnough)?;
+			T::Currency::reserve(&who, T::KittyReserve::get())
+				.map_err(|_| Error::<T>::TokenNotEnough)?;
 
 			// check kitty id
 			ensure!(kitty_id_1 != kitty_id_2, Error::<T>::SameKittyId);
@@ -149,9 +164,8 @@ pub mod pallet {
 			NextKittyId::<T>::set(kitty_id + One::one());
 
 			// 将kitty信息进行存储
-			AllKitties::<T>::try_mutate(&who, |kitty_vec| {
-				kitty_vec.try_push(new_kitty.clone())
-			}).map_err(|_| Error::<T>::ExceedMaxKittyOwned)?;
+			AllKitties::<T>::try_mutate(&who, |kitty_vec| kitty_vec.try_push(new_kitty.clone()))
+				.map_err(|_| Error::<T>::ExceedMaxKittyOwned)?;
 
 			Self::deposit_event(Event::KittyCreated(who, kitty_id, new_kitty));
 
@@ -173,16 +187,18 @@ pub mod pallet {
 			ensure!(Self::kitty_owner(kitty_id) == Some(who.clone()), Error::<T>::NotOwner);
 
 			// 新拥有者质押token
-			T::Currency::reserve(&new_owner, T::KittyReserve::get()).map_err(|_| Error::<T>::TokenNotEnough)?;
+			T::Currency::reserve(&new_owner, T::KittyReserve::get())
+				.map_err(|_| Error::<T>::TokenNotEnough)?;
 
 			// 删除原拥有者AllOwnerKitty存储项需转移的kitty
 			AllKitties::<T>::try_mutate(&who, |owned| {
 				if let Some(index) = owned.iter().position(|kitty| kitty == &exsit_kitty) {
 					owned.swap_remove(index);
-					return Ok(());
+					return Ok(())
 				}
 				Err(())
-			}).map_err(|_| Error::<T>::NotOwner)?;
+			})
+			.map_err(|_| Error::<T>::NotOwner)?;
 
 			// 解押原来拥有都质押的token
 			T::Currency::unreserve(&who, T::KittyReserve::get());
@@ -190,11 +206,10 @@ pub mod pallet {
 			<KittyOwner<T>>::insert(kitty_id, new_owner.clone());
 
 			// 追加转移的kitty到新拥有者AllOwnerKitty存储项中
-			AllKitties::<T>::try_mutate(&who, |kitty_vec| {
-				kitty_vec.try_push(exsit_kitty)
-			}).map_err(|_| Error::<T>::ExceedMaxKittyOwned)?;
+			AllKitties::<T>::try_mutate(&who, |kitty_vec| kitty_vec.try_push(exsit_kitty))
+				.map_err(|_| Error::<T>::ExceedMaxKittyOwned)?;
 
-			Self::deposit_event(Event::KittyTransferred(who,new_owner.clone(),kitty_id));
+			Self::deposit_event(Event::KittyTransferred(who, new_owner.clone(), kitty_id));
 
 			Ok(())
 		}
@@ -216,7 +231,7 @@ pub mod pallet {
 		fn get_next_id() -> Result<T::KittyIndex, DispatchError> {
 			let kitty_id = Self::next_kitty_id();
 			if kitty_id == T::KittyIndex::max_value() {
-				return Err(Error::<T>::KittyIdOverflow.into());
+				return Err(Error::<T>::KittyIdOverflow.into())
 			}
 			Ok(kitty_id)
 		}
