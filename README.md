@@ -29,9 +29,3 @@ cargo test -p  PALLETS-PACKAGE-NAME
 ```bash
 cargo +nightly fmt
 ```
-
-## Substrate 区块链应用开发进阶
-
-### 第一次作业
-
-![代码执行截图](https://p.qlogo.cn/qqmail_head/C6nnRGnPbvwlVslNHxDtemvOjTjEDAZ1fe7Nw5c0nL7MtBHyqWEYzODTr8onzpNOXEushsib2xvk/0)
