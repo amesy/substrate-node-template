@@ -23,6 +23,10 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
+use sp_runtime::{generic::Era, traits::StaticLookup, SaturatedConversion};
+// use parity_scale_codec::Encode;
+use codec::Encode;
+
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,
@@ -45,6 +49,9 @@ pub use sp_runtime::{Perbill, Permill};
 
 /// Import the template pallet.
 pub use pallet_template;
+
+/// Import the ocw pallet.
+pub use pallet_ocw;
 
 /// Import the poe pallet.
 pub use pallet_poe;
@@ -152,6 +159,67 @@ parameter_types! {
 }
 
 // Configure FRAME pallets to include in runtime.
+
+// #################################################################################################
+// https://docs.substrate.io/reference/how-to-guides/offchain-workers/offchain-transactions/
+impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
+where
+	Call: From<LocalCall>,
+{
+	fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+		call: Call,
+		public: <Signature as sp_runtime::traits::Verify>::Signer,
+		account: AccountId,
+		nonce: Index,
+	) -> Option<(Call, <UncheckedExtrinsic as sp_runtime::traits::Extrinsic>::SignaturePayload)> {
+		let tip = 0;
+		// take the biggest period possible.
+		let period = 1 << 7;
+		// BlockHashCount::get().checked_next_power_of_two().map(|c| c / 2).unwrap_or(2) as u64;
+
+		let current_block = System::block_number()
+			.saturated_into::<u64>()
+			// The `System::block_number` is initialized with `n+1`,
+			// so the actual block number is `n`.
+			.saturating_sub(1);
+		let era = Era::mortal(period, current_block);
+		let extra = (
+			frame_system::CheckNonZeroSender::<Runtime>::new(),
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			frame_system::CheckEra::<Runtime>::from(era),
+			frame_system::CheckNonce::<Runtime>::from(nonce),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+		);
+		let raw_payload = SignedPayload::new(call, extra)
+			.map_err(|e| {
+				log::warn!("Unable to create signed payload: {:?}", e);
+			})
+			.ok()?;
+		let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
+		let address = <Self as frame_system::Config>::Lookup::unlookup(account);
+		let (call, extra, _) = raw_payload.deconstruct();
+		Some((call, (address, signature.into(), extra)))
+	}
+}
+
+impl frame_system::offchain::SigningTypes for Runtime {
+	type Public = <Signature as sp_runtime::traits::Verify>::Signer;
+	type Signature = Signature;
+}
+
+impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
+where
+	Call: From<C>,
+{
+	type OverarchingCall = Call;
+	type Extrinsic = UncheckedExtrinsic;
+}
+
+// #################################################################################################
+// #########
 
 impl frame_system::Config for Runtime {
 	/// The basic call filter to use in dispatchable.
@@ -272,6 +340,17 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
+// --------------------------------------------------------------------------------------------------------
+// https://docs.substrate.io/reference/how-to-guides/offchain-workers/offchain-transactions/
+pub struct MyAuthorityId;
+
+impl frame_system::offchain::AppCrypto<<Signature as Verify>::Signer, Signature> for MyAuthorityId {
+	type RuntimeAppPublic = pallet_ocw::crypto::Public;
+	type GenericSignature = sp_core::sr25519::Signature;
+	type GenericPublic = sp_core::sr25519::Public;
+}
+// ---------------------------------------------------------------------------------------------------------
+
 /// Configure the pallet-template in pallets/template.
 impl pallet_template::Config for Runtime {
 	type Event = Event;
@@ -291,6 +370,13 @@ impl pallet_kitties::Config for Runtime {
 	type MaxKittyIdLength = ConstU32<64>;
 	type KittyReserve = KittyReserve;
 	type Currency = Balances;
+}
+
+/// Configure the pallet-ocw in pallets/ocw.
+impl pallet_ocw::Config for Runtime {
+	type Event = Event;
+	type AuthorityId = MyAuthorityId;
+	type StudentId = u32;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -313,6 +399,7 @@ construct_runtime!(
 		TemplateModule: pallet_template,
 		PoeModule: pallet_poe,
 		KittiesModule: pallet_kitties,
+		Ocw: pallet_ocw,
 	}
 );
 

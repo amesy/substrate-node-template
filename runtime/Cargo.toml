@@ -38,6 +38,7 @@ sp-session = { version = "4.0.0-dev", default-features = false, git = "https://g
 sp-std = { version = "4.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.28" }
 sp-transaction-pool = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.28" }
 sp-version = { version = "5.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.28" }
+log = { version = "0.4.17", default-features = false }
 
 # Used for the node template's RPCs
 frame-system-rpc-runtime-api = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.28" }
@@ -52,6 +53,7 @@ hex-literal = { version = "0.3.4", optional = true }
 pallet-template = { version = "4.0.0-dev", default-features = false, path = "../pallets/template" }
 pallet-poe = { version = "4.0.0-dev", default-features = false, path = "../pallets/poe" }
 pallet-kitties = { version = "4.0.0-dev", default-features = false, path = "../pallets/kitties" }
+pallet-ocw = { version = "4.0.0-dev", default-features = false, path = "../pallets/ocw" }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.28" }
@@ -85,9 +87,11 @@ std = [
 	"sp-std/std",
 	"sp-transaction-pool/std",
 	"sp-version/std",
+	"log/std",
 	# 自定义pallet
 	"pallet-poe/std",
 	"pallet-kitties/std",
+	"pallet-ocw/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking/runtime-benchmarks",
