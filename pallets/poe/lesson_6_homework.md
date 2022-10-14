@@ -8,3 +8,9 @@
 ![](https://p.qlogo.cn/qqmail_head/C6nnRGnPbvwlVslNHxDtemvOjTjEDAZ1BUsl5QiaRtlwPKdiaBsv4QQaOD9xyQsyUEDcftSstwUHs/0)
 
 ![](https://p.qlogo.cn/qqmail_head/Q3auHgzwzM6HJTwuN7PVBOoQXfpElcp8cprqZHn2dtllT4GvxfZG5ZIUHUk4CUHSVfQibZBHvQgA/0)
+
+- 选择 node-template 或者其它节点程序，生成 Chain Spec 文件（两种格式都需要）；
+https://github.com/amesy/substrate-node-template/blob/master/myCustomSpec.json
+https://github.com/amesy/substrate-node-template/blob/master/customSpecRaw.json
+
+- （附加题）根据 Chain Spec，部署公开测试网络
