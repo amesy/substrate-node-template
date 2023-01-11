@@ -3,6 +3,12 @@
 // 导入poe模块需要的内容，如存储单元等给外部使用
 pub use pallet::*;
 
+#[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod tests;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::pallet_prelude::*;

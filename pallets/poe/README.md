@@ -25,5 +25,6 @@ poe
 - 2、all calls have the `pallet::call_index` attribute or that the `dev-mode` of the pallet is enabled.
   - For more info see:
     - [#12891](https://github.com/paritytech/substrate/pull/12891) and [#11381](https://github.com/paritytech/substrate/pull/11381).
+- 3、`mock.rs`： `type Origin = Origin;` -> `type RuntimeOrigin = RuntimeOrigin;`
 
 
