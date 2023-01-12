@@ -12,19 +12,20 @@ Unlicense
 
 ## Implementation
 ```Bash
-poe
+pallets/poe
 ├── Cargo.toml
 ├── README.md
 └── src
-    └── lib.rs
+    ├── lib.rs
+    ├── mock.rs
+    └── tests.rs
 ```
 
 ## Notice
 相比于v0.9.28, v0.9.35的更新点：
 - 1、An RuntimeEvent associated type must be declare on trait `Config`.
 - 2、all calls have the `pallet::call_index` attribute or that the `dev-mode` of the pallet is enabled.
-  - For more info see:
-    - [#12891](https://github.com/paritytech/substrate/pull/12891) and [#11381](https://github.com/paritytech/substrate/pull/11381).
+  - For more info see: [#12891](https://github.com/paritytech/substrate/pull/12891) and [#11381](https://github.com/paritytech/substrate/pull/11381).
 - 3、`mock.rs`： `type Origin = Origin;` -> `type RuntimeOrigin = RuntimeOrigin;`
 
 
