@@ -53,6 +53,9 @@ pub use pallet_template;
 /// Import the poe pallet.
 pub use pallet_poe;
 
+/// Import the kitties pallet.
+pub use pallet_kitties;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -289,6 +292,12 @@ impl pallet_poe::Config for Runtime {
 	type MaxClaimLength = ConstU32<512>;
 }
 
+// Configure the pallet-poe in pallets/poe.
+impl pallet_kitties::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Randomness = RandomnessCollectiveFlip;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub struct Runtime
@@ -308,6 +317,7 @@ construct_runtime!(
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
 		PoeModule: pallet_poe,
+		KittiesModule: pallet_kitties,
 	}
 );
 
