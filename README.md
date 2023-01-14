@@ -17,8 +17,10 @@ cargo build --release
 ### Test
 
 ```bash
-cargo test -p  PALLETS-PACKAGE-NAME
+cargo test -p  pallet-poe
 ```
+
+## Other operations
 
 ### Format
 
@@ -37,4 +39,11 @@ rustfmt +nightly pallets/template/src/lib.rs
 ```bash
 cargo install subxt-cli
 subxt metadata --url http://127.0.0.1:9933 --format json > metadata.json
+```
+
+### Macro expand
+
+```bash
+cd pallets/poe
+cargo expand > expand.rs
 ```
