@@ -31,3 +31,10 @@ or for example:
 ```bash
 rustfmt +nightly pallets/template/src/lib.rs
 ```
+
+### Generate metadata.json
+
+```bash
+cargo install subxt-cli
+subxt metadata --url http://127.0.0.1:9933 --format json > metadata.json
+```
