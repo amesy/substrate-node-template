@@ -5,17 +5,19 @@ pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use frame_support::{pallet_prelude::*, traits::Randomness};
+    use codec::MaxEncodedLen;
+    use frame_support::{pallet_prelude::{*, Member}, traits::Randomness, Parameter};
     use frame_system::pallet_prelude::*;
     use sp_io::hashing::blake2_128;
+	use sp_runtime::traits::{AtLeast32BitUnsigned, Bounded, One};
 
     // 对每个kitty进行标识
-	type KittyIndex = u32;
+	// type KittyIndex = u32;
 
     // 为 Storage NextKittyId 设置一个默认值0
 	#[pallet::type_value]
-	pub fn GetDefaultValue() -> KittyIndex {
-		0_u32
+	pub fn GetDefaultValue<T: Config>() -> T::KittyIndex {
+		0_u32.into()
 	}
 
     // 存放Kitty的特征属性
@@ -30,14 +32,21 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type Randomness: Randomness<Self::Hash, Self::BlockNumber>;
+		type KittyIndex: Parameter
+			+ Member
+			+ AtLeast32BitUnsigned
+			+ Default
+			+ Copy
+			+ MaxEncodedLen
+			+ Bounded;
     }
 
-    #[pallet::event]  
+    #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        KittyCreated(T::AccountId, KittyIndex, Kitty),
-		KittyBred(T::AccountId, KittyIndex, Kitty),
-		KittyTransferred(T::AccountId, T::AccountId, KittyIndex),
+        KittyCreated(T::AccountId, T::KittyIndex, Kitty),
+		KittyBred(T::AccountId, T::KittyIndex, Kitty),
+		KittyTransferred(T::AccountId, T::AccountId, T::KittyIndex),
     }
 
     #[pallet::error]  
@@ -45,23 +54,24 @@ pub mod pallet {
         InvalidKittyId,
 		NotOwner,
 		SameKittyId,
+		KittyIdOverflow,
     }
 
     // 存储KittyId
 	// ValueQuery也可以定义成OptionQuery的数据类型，见template/src/lib.rs_89行
     #[pallet::storage]
     #[pallet::getter(fn next_kitty_id)]
-	pub type NextKittyId<T> = StorageValue<_, KittyIndex, ValueQuery, GetDefaultValue>;
+	pub type NextKittyId<T: Config> = StorageValue<_, T::KittyIndex, ValueQuery, GetDefaultValue<T>>;
  
     // 存储Kitty的特征属性
     #[pallet::storage]
 	#[pallet::getter(fn kitties)]
-	pub type Kitties<T> = StorageMap<_, Blake2_128Concat, KittyIndex, Kitty>;
+	pub type Kitties<T: Config> = StorageMap<_, Blake2_128Concat, T::KittyIndex, Kitty>;
 
     // 转移Kitty时存储所属owner
 	#[pallet::storage]
 	#[pallet::getter(fn kitty_owner)]
-	pub type KittyOwner<T: Config> = StorageMap<_, Blake2_128Concat, KittyIndex, T::AccountId>;
+	pub type KittyOwner<T: Config> = StorageMap<_, Blake2_128Concat, T::KittyIndex, T::AccountId>;
 
     #[pallet::call]   
     impl<T: Config> Pallet<T> {
@@ -77,7 +87,7 @@ pub mod pallet {
 
 			Kitties::<T>::insert(kitty_id, &kitty);
 			KittyOwner::<T>::insert(kitty_id, &who);
-			NextKittyId::<T>::set(kitty_id + 1);
+			NextKittyId::<T>::set(kitty_id + One::one());
 
 			// Emit an event.
 			Self::deposit_event(Event::KittyCreated(who, kitty_id, kitty));
@@ -89,8 +99,8 @@ pub mod pallet {
         #[pallet::weight(0)]
 		pub fn breed(
 			origin: OriginFor<T>,
-			kitty_id_1: KittyIndex,
-			kitty_id_2: KittyIndex,
+			kitty_id_1: T::KittyIndex,
+			kitty_id_2: T::KittyIndex,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
@@ -114,7 +124,7 @@ pub mod pallet {
 
 			<Kitties<T>>::insert(kitty_id, &new_kitty);
 			KittyOwner::<T>::insert(kitty_id, &who);
-			NextKittyId::<T>::set(kitty_id + 1);
+			NextKittyId::<T>::set(kitty_id + One::one());
 
 			Self::deposit_event(Event::KittyCreated(who, kitty_id, new_kitty));
 
@@ -126,7 +136,7 @@ pub mod pallet {
         #[pallet::weight(0)]
 		pub fn transfer(
 			origin: OriginFor<T>,
-			kitty_id: u32,
+			kitty_id: T::KittyIndex,
 			new_owner: T::AccountId,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -154,15 +164,16 @@ pub mod pallet {
 		}
 
         // 获取一个新的kitty id
-		fn get_next_id() -> Result<KittyIndex, ()> {
-			match Self::next_kitty_id() {
-				KittyIndex::MAX => Err(()),
-				val => Ok(val),
+		fn get_next_id() -> Result<T::KittyIndex, DispatchError> {
+			let kitty_id = Self::next_kitty_id();
+			if kitty_id == T::KittyIndex::max_value() {
+				return Err(Error::<T>::KittyIdOverflow.into())
 			}
+			Ok(kitty_id)
 		}
 
         // 通过kitty id获取kitty
-		fn get_kitty(kitty_id: KittyIndex) -> Result<Kitty, ()> {
+		fn get_kitty(kitty_id: T::KittyIndex) -> Result<Kitty, ()> {
 			match Self::kitties(kitty_id) {
 				Some(kitty) => Ok(kitty),
 				None => Err(()),
