@@ -296,6 +296,7 @@ impl pallet_kitties::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Randomness = RandomnessCollectiveFlip;
 	type KittyIndex = u32;
+	type MaxKittyIndexLength = ConstU32<64>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

@@ -39,6 +39,8 @@ pub mod pallet {
 			+ Copy
 			+ MaxEncodedLen
 			+ Bounded;
+		// Kitty标识最大能接受的长度限制
+		type MaxKittyIndexLength: Get<u32>;
     }
 
     #[pallet::event]
@@ -55,6 +57,7 @@ pub mod pallet {
 		NotOwner,
 		SameKittyId,
 		KittyIdOverflow,
+		ExceedMaxKittyOwned,
     }
 
     // 存储KittyId
@@ -73,6 +76,11 @@ pub mod pallet {
 	#[pallet::getter(fn kitty_owner)]
 	pub type KittyOwner<T: Config> = StorageMap<_, Blake2_128Concat, T::KittyIndex, T::AccountId>;
 
+	// 存储一个账户拥有的所有Kitty
+	#[pallet::storage]
+	#[pallet::getter(fn kitty_all)]
+	pub type KittyAll<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BoundedVec<Kitty, T::MaxKittyIndexLength>, ValueQuery>;
+
     #[pallet::call]   
     impl<T: Config> Pallet<T> {
         // 新增
@@ -88,6 +96,10 @@ pub mod pallet {
 			Kitties::<T>::insert(kitty_id, &kitty);
 			KittyOwner::<T>::insert(kitty_id, &who);
 			NextKittyId::<T>::set(kitty_id + One::one());
+			KittyAll::<T>::try_mutate(
+				&who,
+				|kitty_vec| kitty_vec.try_push(kitty.clone())
+			).map_err(|_| Error::<T>::ExceedMaxKittyOwned)?;
 
 			// Emit an event.
 			Self::deposit_event(Event::KittyCreated(who, kitty_id, kitty));
@@ -125,6 +137,10 @@ pub mod pallet {
 			<Kitties<T>>::insert(kitty_id, &new_kitty);
 			KittyOwner::<T>::insert(kitty_id, &who);
 			NextKittyId::<T>::set(kitty_id + One::one());
+			KittyAll::<T>::try_mutate(
+				&who,
+				|kitty_vec| kitty_vec.try_push(new_kitty.clone())
+			).map_err(|_| Error::<T>::ExceedMaxKittyOwned)?;
 
 			Self::deposit_event(Event::KittyCreated(who, kitty_id, new_kitty));
 
@@ -141,12 +157,33 @@ pub mod pallet {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			Self::get_kitty(kitty_id).map_err(|_| Error::<T>::InvalidKittyId)?;
+			let exsit_kitty = Self::get_kitty(kitty_id).map_err(|_| Error::<T>::InvalidKittyId)?;
 
 			// 验证只有自己才能操作自己的owner
 			ensure!(Self::kitty_owner(kitty_id) == Some(who.clone()), Error::<T>::NotOwner);
 
-			<KittyOwner<T>>::insert(kitty_id, new_owner);
+			<KittyOwner<T>>::insert(kitty_id, new_owner.clone());
+
+			// 删除原拥有者KittyAll存储项需转移的kitty
+			KittyAll::<T>::try_mutate(
+				&who,
+				|owned| {
+					if let Some(index) = owned.iter().position(|kitty| kitty == &exsit_kitty) {
+						owned.swap_remove(index);
+						return Ok(())
+					}
+					Err(())
+				}
+			).map_err(|_| Error::<T>::NotOwner)?;
+
+			// 追加转移的kitty到新拥有者KittyAll存储项中
+			KittyAll::<T>::try_mutate(
+				&new_owner,
+				|kitty_vec| kitty_vec.try_push(exsit_kitty)
+			).map_err(|_| Error::<T>::ExceedMaxKittyOwned)?;
+
+
+			Self::deposit_event(Event::KittyTransferred(who, new_owner.clone(), kitty_id));
 
 			Ok(())
 		}
