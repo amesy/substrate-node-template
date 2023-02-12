@@ -14,14 +14,14 @@ pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 	use sp_std::prelude::*;
-	
+
 	// 配置
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		// pallet::constant宏表示该值是一个常量
-		#[pallet::constant]            
+		#[pallet::constant]
 		// 存证最大能接受的长度限制
-		type MaxClaimLength: Get<u32>; 
+		type MaxClaimLength: Get<u32>;
 		// 该通用的关联类型，在runtime进行配置接口实现时，会把runtime定义的Event设置在这个类型里
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 	}
@@ -94,10 +94,10 @@ pub mod pallet {
 
 			// 触发create事件
 			Self::deposit_event(Event::ClaimCreated(sender, claim));
-			
+
 			Ok(().into())
 		}
-		
+
 		#[pallet::call_index(1)]
 		#[pallet::weight(0)]
 		// 撤销/删除存证
