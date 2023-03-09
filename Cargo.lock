@@ -4334,6 +4334,8 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "pallet-balances",
+ "pallet-randomness-collective-flip",
  "parity-scale-codec",
  "scale-info",
  "sp-core",

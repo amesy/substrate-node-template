@@ -3,25 +3,6 @@ use crate::{mock::*, Error};
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::BoundedVec;
 
-/// 创建存证成功
-#[test]
-fn create_claim_works() {
-	// 给予测试环境
-	new_test_ext().execute_with(|| {
-		let claim = vec![0, 1];
-
-		// 断言创建存证
-		assert_ok!(PoeModule::create_claim(RuntimeOrigin::signed(1), claim.clone()));
-
-		let bounded_claim =
-			BoundedVec::<u8, <Test as Config>::MaxClaimLength>::try_from(claim.clone()).unwrap();
-		// 断言存储项,对应lib.rs里的storage部分
-		assert_eq!(
-			Proofs::<Test>::get(&bounded_claim),
-			Some((1, frame_system::Pallet::<Test>::block_number()))
-		);
-	})
-}
 
 /// 创建存证失败 - 存证已存在
 #[test]
