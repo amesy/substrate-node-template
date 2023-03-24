@@ -24,7 +24,10 @@ fn create_kitty_failed() {
 		// 超过KittyId数支持的最大值，便会报错
 		NextKittyId::<Test>::put(u32::MAX);
 
-		assert_noop!(KittiesModule::create(RuntimeOrigin::signed(1)), Error::<Test>::InvalidKittyId);
+		assert_noop!(
+			KittiesModule::create(RuntimeOrigin::signed(1)),
+			Error::<Test>::InvalidKittyId
+		);
 	})
 }
 
@@ -33,7 +36,10 @@ fn create_kitty_failed() {
 fn create_kitty_and_reversed_failed() {
 	new_test_ext().execute_with(|| {
 		// 已知账户3中的余额为999，小于质押要求的数目1000，所以质押会失败
-		assert_noop!(KittiesModule::create(RuntimeOrigin::signed(3)), Error::<Test>::TokenNotEnough);
+		assert_noop!(
+			KittiesModule::create(RuntimeOrigin::signed(3)),
+			Error::<Test>::TokenNotEnough
+		);
 	})
 }
 
@@ -66,7 +72,10 @@ fn breed_kitty_failed_same_kitty_id() {
 		assert_ok!(KittiesModule::create(RuntimeOrigin::signed(1)));
 
 		// 使用两个相同的kitty来繁殖新kitty,预期将报错
-		assert_noop!(KittiesModule::breed(RuntimeOrigin::signed(1), 0, 0), Error::<Test>::SameKittyId);
+		assert_noop!(
+			KittiesModule::breed(RuntimeOrigin::signed(1), 0, 0),
+			Error::<Test>::SameKittyId
+		);
 	})
 }
 
@@ -78,7 +87,10 @@ fn breed_kitty_failed_invalid_parent_kitty_id() {
 		assert_ok!(KittiesModule::create(RuntimeOrigin::signed(1)));
 
 		// kitty_id_1存在，kitty_id_2不存在，预期将报错
-		assert_noop!(KittiesModule::breed(RuntimeOrigin::signed(1), 0, 1), Error::<Test>::InvalidKittyId);
+		assert_noop!(
+			KittiesModule::breed(RuntimeOrigin::signed(1), 0, 1),
+			Error::<Test>::InvalidKittyId
+		);
 	})
 }
 
@@ -96,7 +108,10 @@ fn breed_kitty_failed_get_new_kitty_id() {
 		NextKittyId::<Test>::put(u32::MAX);
 
 		// 超过KittyId数支持的最大值，预期会报错
-		assert_noop!(KittiesModule::breed(RuntimeOrigin::signed(1), 0, 1), Error::<Test>::InvalidKittyId);
+		assert_noop!(
+			KittiesModule::breed(RuntimeOrigin::signed(1), 0, 1),
+			Error::<Test>::InvalidKittyId
+		);
 	})
 }
 
@@ -111,7 +126,10 @@ fn breed_kitty_failed_token_not_enough_to_reversed() {
 		assert_ok!(KittiesModule::create(RuntimeOrigin::signed(2)));
 
 		// 已知账户3中的余额为999，小于质押要求的数目1000，所以预期质押会失败
-		assert_noop!(KittiesModule::breed(RuntimeOrigin::signed(3), 0, 1), Error::<Test>::TokenNotEnough);
+		assert_noop!(
+			KittiesModule::breed(RuntimeOrigin::signed(3), 0, 1),
+			Error::<Test>::TokenNotEnough
+		);
 	})
 }
 
@@ -167,7 +185,10 @@ fn transfer_kitty_failed_not_owner() {
 
 		// 账户1把账户2下的编号为1的kitty转移给自己，由于账户1不是kitty编号为1的kitty的owner，
 		// 预期将报错
-		assert_noop!(KittiesModule::transfer(RuntimeOrigin::signed(1), 1, 1), Error::<Test>::NotOwner);
+		assert_noop!(
+			KittiesModule::transfer(RuntimeOrigin::signed(1), 1, 1),
+			Error::<Test>::NotOwner
+		);
 	})
 }
 
@@ -180,6 +201,9 @@ fn transfer_kitty_failed_token_not_enough_to_reversed() {
 
 		// 账户1把自己的编号为0的kitty转移给账户3
 		// 由于账户3的待质押token为999，不满足质押条件1000，预期将报错
-		assert_noop!(KittiesModule::transfer(RuntimeOrigin::signed(1), 0, 3), Error::<Test>::TokenNotEnough);
+		assert_noop!(
+			KittiesModule::transfer(RuntimeOrigin::signed(1), 0, 3),
+			Error::<Test>::TokenNotEnough
+		);
 	})
 }

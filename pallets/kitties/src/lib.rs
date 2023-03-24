@@ -19,9 +19,7 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	use sp_io::hashing::blake2_128;
-	use sp_runtime::{
-		traits::{AtLeast32BitUnsigned, Bounded, One},
-	};
+	use sp_runtime::traits::{AtLeast32BitUnsigned, Bounded, One};
 
 	// 对每个kitty进行标识
 	// type KittyIndex = u32;
@@ -37,7 +35,7 @@ pub mod pallet {
 	pub struct Kitty(pub [u8; 16]);
 
 	type BalanceOf<T> =
-	<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -204,7 +202,8 @@ pub mod pallet {
 					return Ok(())
 				}
 				Err(())
-			}).map_err(|_| Error::<T>::NotOwner)?;
+			})
+			.map_err(|_| Error::<T>::NotOwner)?;
 
 			// 解押原来已质押的token
 			T::Currency::unreserve(&who, T::KittyReserve::get());

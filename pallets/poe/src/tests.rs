@@ -3,7 +3,6 @@ use crate::{mock::*, Error};
 use frame_support::{assert_noop, assert_ok};
 use sp_runtime::BoundedVec;
 
-
 /// 创建存证失败 - 存证已存在
 #[test]
 fn create_claim_failed_when_claim_already_exist() {
