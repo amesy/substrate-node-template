@@ -11,58 +11,26 @@ mod tests;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-use frame_system::{
-	offchain::{
-		AppCrypto, CreateSignedTransaction, SendSignedTransaction,
-		Signer,
-	},
+use frame_system::offchain::{
+	SubmitTransaction,
 };
-use sp_core::crypto::KeyTypeId;
-
-pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"ocwd");
-pub mod crypto {
-	use super::KEY_TYPE;
-	use sp_core::sr25519::Signature as Sr25519Signature;
-	use sp_runtime::{
-		app_crypto::{app_crypto, sr25519},
-		traits::Verify,
-		MultiSignature, MultiSigner,
-	};
-	app_crypto!(sr25519, KEY_TYPE);
-
-	pub struct OcwAuthId;
-
-	impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for OcwAuthId {
-		type RuntimeAppPublic = Public;
-		type GenericSignature = sp_core::sr25519::Signature;
-		type GenericPublic = sp_core::sr25519::Public;
-	}
-
-	impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
-	for OcwAuthId
-	{
-		type RuntimeAppPublic = Public;
-		type GenericSignature = sp_core::sr25519::Signature;
-		type GenericPublic = sp_core::sr25519::Public;
-	}
-}
+use sp_runtime::{
+	transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
+};
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-	use sp_std::vec::Vec;
-	use sp_std::vec;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub (super) trait Store)]
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + CreateSignedTransaction<Call<Self>> {
+	pub trait Config: frame_system::Config + frame_system::offchain::SendTransactionTypes<Call<Self>> {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-		type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 	}
 
 	// The pallet's runtime storage items.
@@ -128,66 +96,52 @@ pub mod pallet {
 				},
 			}
 		}
+
 		#[pallet::call_index(2)]
 		#[pallet::weight(0)]
-		pub fn submit_data(origin: OriginFor<T>, payload: Vec<u8>) -> DispatchResultWithPostInfo {
+		pub fn submit_data_unsigned(origin: OriginFor<T>, n: u64) -> DispatchResult {
+			ensure_none(origin)?;
 
-			let _who = ensure_signed(origin)?;
+			log::info!("in submit_data_unsigned: {:?}", n);
 
-			log::info!("in submit_data call: {:?}", payload);
-
-			Ok(().into())
+			// Return a successful DispatchResultWithPostInfo
+			Ok(())
 		}
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+
 		fn offchain_worker(block_number: T::BlockNumber) {
 			log::info!("Hello World from offchain workers!: {:?}", block_number);
-
-			let payload: Vec<u8> = vec![1,2,3,4,5,6,7,8];
-			_ = Self::send_signed_tx(payload);
+			let value: u64 = 42;
+			let call = Call::submit_data_unsigned { n: value };
+			_ = SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into())
+				.map_err(|_| {
+					log::error!("Failed in offchain_unsigned_tx");
+				});
 
 			log::info!("Leave from offchain workers!: {:?}", block_number);
 		}
-
-		fn on_initialize(_n: T::BlockNumber) -> Weight {
-			log::info!("in on_initialize!");
-			Default::default()
-		}
-
-		fn on_finalize(_n: T::BlockNumber) {
-			log::info!("in on_finalize!");
-		}
-
-		fn on_idle(_n: T::BlockNumber, _remaining_weight: Weight) -> Weight {
-			log::info!("in on_idle!");
-			Default::default()
-		}
 	}
 
-	impl<T: Config> Pallet<T> {
-		fn send_signed_tx(payload: Vec<u8>) -> Result<(), &'static str> {
-			let signer = Signer::<T, T::AuthorityId>::all_accounts();
-			if !signer.can_sign() {
-				return Err(
-					"No local accounts available. Consider adding one via `author_insertKey` RPC.",
-				)
+	#[pallet::validate_unsigned]
+	impl<T: Config> ValidateUnsigned for Pallet<T> {
+		type Call = Call<T>;
+
+		// 参考：https://github.com/paritytech/substrate/blob/polkadot-v0.9.35/frame/examples/offchain-worker/src/lib.rs
+		fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
+			if let Call::submit_data_unsigned { n: _ } = call {
+				//let provide = b"submit_xxx_unsigned".to_vec();
+				ValidTransaction::with_tag_prefix("ExampleOffchainWorker")
+					.priority(10000)
+					.and_provides(1)
+					.longevity(3)
+					.propagate(true)
+					.build()
+			} else {
+				InvalidTransaction::Call.into()
 			}
-
-			// https://crates.parity.io/frame_system/offchain/struct.Signer.html#method.send_signed_transaction-1
-			let results = signer.send_signed_transaction(|_account| {
-				Call::submit_data { payload: payload.clone() }
-			});
-
-			for (acc, res) in &results {
-				match res {
-					Ok(()) => log::info!("[{:?}] Submitted data:{:?}", acc.id, payload),
-					Err(e) => log::error!("[{:?}] Failed to submit transaction: {:?}", acc.id, e),
-				}
-			}
-
-			Ok(())
 		}
 	}
 }
