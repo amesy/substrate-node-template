@@ -2,6 +2,7 @@
 
 // 导入poe模块需要的内容，如存储单元等给外部使用
 pub use pallet::*;
+pub use weights::WeightInfo;
 
 #[cfg(test)]
 mod mock;
@@ -9,11 +10,17 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+
+pub mod weights;
+
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::pallet_prelude::*;
-	use frame_system::pallet_prelude::*;
-	use sp_std::prelude::*;
+	use super::*;
+	pub use frame_support::pallet_prelude::*;
+	pub use frame_system::pallet_prelude::*;
+	pub use sp_std::prelude::*;
 
 	// 配置
 	#[pallet::config]
@@ -24,6 +31,7 @@ pub mod pallet {
 		type MaxClaimLength: Get<u32>;
 		// 该通用的关联类型，在runtime进行配置接口实现时，会把runtime定义的Event设置在这个类型里
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+		type WeightInfo: WeightInfo;
 	}
 
 	// 定义模块所需的结构体
@@ -70,7 +78,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::call_index(0)]
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::create_claim(claim.len() as u32))]
 		// 创建存证，origin表示交易的发送方；claim表示存证的内容，通常是hash值
 		pub fn create_claim(origin: OriginFor<T>, claim: Vec<u8>) -> DispatchResultWithPostInfo {
 			// 判断是否是签名用户
@@ -99,7 +107,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::revoke_claim(claim.len() as u32))]
 		// 撤销/删除存证
 		pub fn revoke_claim(origin: OriginFor<T>, claim: Vec<u8>) -> DispatchResultWithPostInfo {
 			// 判断是否是签名用户
@@ -125,7 +133,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		#[pallet::weight(0)]
+		#[pallet::weight(T::WeightInfo::transfer_claim(claim.len() as u32))]
 		// 转移存证
 		pub fn transfer_claim(
 			origin: OriginFor<T>,
